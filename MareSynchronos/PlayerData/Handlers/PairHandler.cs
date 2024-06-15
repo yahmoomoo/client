@@ -11,6 +11,7 @@ using MareSynchronos.Utils;
 using MareSynchronos.WebAPI.Files;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Channels;
@@ -477,6 +478,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     _cachedData = charaData;
 
                     Logger.LogDebug("[{applicationId}] Application finished", _applicationId);
+
+                    SavePlayer(updateModdedPaths, updateManip, charaData, updatedData);
                 }
                 catch (Exception ex)
                 {
@@ -494,6 +497,55 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                 }
             }, token);
         }, downloadToken);
+    }
+
+    private void SavePlayer(bool updateModdedPaths, bool updateManip, CharacterData charaData, Dictionary<ObjectKind, HashSet<PlayerChanges>> updatedData)
+    {
+        if (updateModdedPaths) { }
+        if (updateManip) { }
+
+        foreach (var changes in updatedData)
+        {
+            foreach (var change in changes.Value.OrderBy(p => (int)p))
+            {
+                string data = "";
+                string changeType = Enum.GetName(typeof(PlayerChanges), change);
+
+                switch (change)
+                {
+                    case PlayerChanges.Customize:
+                        if (charaData.CustomizePlusData.TryGetValue(changes.Key, out var customizePlusData))
+                        {
+                            data = customizePlusData;
+                        }
+                        break;
+
+                    case PlayerChanges.Heels:
+                        data = charaData.HeelsData;
+                        break;
+
+                    case PlayerChanges.Honorific:
+                        data = charaData.HonorificData;
+                        break;
+
+                    case PlayerChanges.Glamourer:
+                        if (charaData.GlamourerData.TryGetValue(changes.Key, out var glamourerData))
+                        {
+                            data = glamourerData;
+                        }
+                        break;
+
+                    case PlayerChanges.Moodles:
+                        data = charaData.MoodlesData;
+                        break;
+
+                    default:
+                        break;
+                }
+
+                Logger.LogInformation("Received {a} data for character {b} :: {c}", changeType, PlayerName, data);
+            }
+        }
     }
 
     private void FrameworkUpdate()
